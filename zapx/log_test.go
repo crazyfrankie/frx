@@ -16,5 +16,5 @@ func TestSensitiveLog(t *testing.T) {
 		panic(err)
 	}
 
-	l.Info("info msg", zap.String("phone", "13117127078")) // print {"level":"info","ts":1744177043.0410442,"caller":"zapx/sensitive_test.go:19","msg":"info msg","phone":"131****7078"}
+	l.Info("info msg", zap.String("phone", "12345678910")) // print {"level":"info","ts":1744177043.0410442,"caller":"zapx/sensitive_test.go:19","msg":"info msg","phone":"123****8910"}
 }
