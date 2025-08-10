@@ -5,14 +5,17 @@ go 1.24.4
 require (
 	github.com/bytedance/sonic v1.14.0
 	github.com/onsi/gomega v1.38.0
+	github.com/redis/go-redis/v9 v9.12.0
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 )
 
 require (
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
