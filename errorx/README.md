@@ -20,6 +20,7 @@ import "github.com/crazyfrankie/frx/errorx"
 ## Quick Start
 
 ### 1. Register Error Codes
+You can choose written by yourself or use our gen tools: [gen](https://github.com/crazyfrankie/frx/tree/master/errorx/gen)
 
 Create error code definitions in your project's `types/errno` package:
 
