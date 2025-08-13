@@ -1,4 +1,9 @@
 # Errno Code Gen
+## Production
+
+When use this tool generating errno code, you should create two file at least for system metadata, such as: `./example/example_metadata.yaml` and `./example/example_common.yaml`.
+It will provide the project errno settings and common error code, and then you should create a file for every biz module like `./example/example_user.yaml`.
+
 ## Usage
 ```
 go run code_gen.go \
