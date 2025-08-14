@@ -22,6 +22,15 @@ type Config struct {
 	ScriptDir      string
 	ProjectRoot    string
 	OutputTemplate string
+	ErrorCodeConf  ErrorCodeConfig
+}
+
+// ErrorCodeConfig holds the error code configuration
+type ErrorCodeConfig struct {
+	TotalLength int `yaml:"total_length"`
+	AppLength   int `yaml:"app_length"`
+	BizLength   int `yaml:"biz_length"`
+	SubLength   int `yaml:"sub_length"`
 }
 
 // loadYAML loads a YAML file and returns the data as map[string]interface{}
@@ -37,6 +46,35 @@ func loadYAML(filePath string) (map[string]interface{}, error) {
 	}
 
 	return result, nil
+}
+
+// loadErrorCodeConfig loads error code configuration from metadata
+func loadErrorCodeConfig(metadata map[string]interface{}) ErrorCodeConfig {
+	// Default values
+	config := ErrorCodeConfig{
+		TotalLength: 9,
+		AppLength:   1,
+		BizLength:   3,
+		SubLength:   4,
+	}
+
+	// Try to load from metadata
+	if ec, ok := metadata["error_code"].(map[string]interface{}); ok {
+		if totalLength, ok := ec["total_length"].(int); ok {
+			config.TotalLength = totalLength
+		}
+		if appLength, ok := ec["app_length"].(int); ok {
+			config.AppLength = appLength
+		}
+		if bizLength, ok := ec["biz_length"].(int); ok {
+			config.BizLength = bizLength
+		}
+		if subLength, ok := ec["sub_length"].(int); ok {
+			config.SubLength = subLength
+		}
+	}
+
+	return config
 }
 
 // validateBusinessCodes validates that all business codes are unique within each app
@@ -116,8 +154,19 @@ func getBizCode(metadata map[string]interface{}, appName, bizName string) (int, 
 }
 
 // errorCode calculates the final error code
-func errorCode(appCode, bizCode, subCode int) int {
-	return appCode*100000000 + bizCode*10000 + subCode
+func errorCode(conf ErrorCodeConfig, appCode, bizCode, subCode int) int {
+	// Calculate multipliers based on configured lengths
+	appMultiplier := 1
+	for i := 0; i < conf.BizLength+conf.SubLength; i++ {
+		appMultiplier *= 10
+	}
+
+	bizMultiplier := 1
+	for i := 0; i < conf.SubLength; i++ {
+		bizMultiplier *= 10
+	}
+
+	return appCode*appMultiplier + bizCode*bizMultiplier + subCode
 }
 
 // CodeGenData represents the data for code generation template
@@ -166,7 +215,7 @@ func getBool(m map[string]interface{}, key string) bool {
 }
 
 // generateGoCode generates Go code for the given business domain
-func generateGoCode(config *Config, bizName string, bizCode int, commonErrors, bizErrors []interface{}, outputDir string) (string, error) {
+func generateGoCode(config *Config, bizName string, bizCode int, bizErrors []interface{}, outputDir string) (string, error) {
 	if outputDir == "" {
 		return "", fmt.Errorf("output_dir cannot be empty")
 	}
@@ -176,16 +225,13 @@ func generateGoCode(config *Config, bizName string, bizCode int, commonErrors, b
 	var constants []ConstantGroup
 	var registrations []string
 
-	// Process all errors (common + business specific)
-	allErrors := append(commonErrors, bizErrors...)
-
-	for _, errorInterface := range allErrors {
+	for _, errorInterface := range bizErrors {
 		errorMap, ok := errorInterface.(map[string]interface{})
 		if !ok {
 			continue
 		}
 
-		code := errorCode(config.AppCode, bizCode, getInt(errorMap, "code"))
+		code := errorCode(config.ErrorCodeConf, config.AppCode, bizCode, getInt(errorMap, "code"))
 		name := getString(errorMap, "name")
 		if name == "" {
 			continue
@@ -259,7 +305,7 @@ func generateGoCode(config *Config, bizName string, bizCode int, commonErrors, b
 }
 
 // generateBizCode generates code for a specific business domain
-func generateBizCode(config *Config, bizName string, bizCode int, commonErrors []interface{}, outputDir string) (string, error) {
+func generateBizCode(config *Config, bizName string, bizCode int, outputDir string) (string, error) {
 	// Get business specific errors if they exist
 	var bizErrors []interface{}
 	bizErrorFile := filepath.Join(config.ScriptDir, bizName+".yaml")
@@ -285,7 +331,7 @@ func generateBizCode(config *Config, bizName string, bizCode int, commonErrors [
 		}
 	}
 
-	return generateGoCode(config, bizName, bizCode, commonErrors, bizErrors, outputDir)
+	return generateGoCode(config, bizName, bizCode, bizErrors, outputDir)
 }
 
 // goCodeTemplate is the template for generating Go code
@@ -327,7 +373,6 @@ func main() {
 		projectRoot    = flag.String("project-root", "", "Project root directory (default: 3 levels up from script dir)")
 		outputTemplate = flag.String("output-template", "{project_root}/modules/{biz}/pkg/errno", "Output directory template")
 		metadataFile   = flag.String("metadata-file", "metadata.yaml", "Metadata file name")
-		commonFile     = flag.String("common-file", "common.yaml", "Common errors file name")
 	)
 	flag.Parse()
 
@@ -363,21 +408,6 @@ func main() {
 		*projectRoot = filepath.Dir(filepath.Dir(filepath.Dir(*scriptDir)))
 	}
 
-	// Validate app code
-	if *appCode < 1 || *appCode > 9 {
-		log.Fatal("App code must be between 1 and 9")
-	}
-
-	// Create config
-	config := &Config{
-		AppName:        *appName,
-		AppCode:        *appCode,
-		ImportPath:     *importPath,
-		ScriptDir:      *scriptDir,
-		ProjectRoot:    *projectRoot,
-		OutputTemplate: *outputTemplate,
-	}
-
 	// Load configuration files
 	metadataPath := filepath.Join(*scriptDir, *metadataFile)
 	metadata, err := loadYAML(metadataPath)
@@ -385,21 +415,33 @@ func main() {
 		log.Fatalf("Failed to load metadata from %s: %v", metadataPath, err)
 	}
 
+	// Create config
+	errorCodeConf := loadErrorCodeConfig(metadata)
+
+	config := &Config{
+		AppName:        *appName,
+		AppCode:        *appCode,
+		ImportPath:     *importPath,
+		ScriptDir:      *scriptDir,
+		ProjectRoot:    *projectRoot,
+		OutputTemplate: *outputTemplate,
+		ErrorCodeConf:  errorCodeConf,
+	}
+
+	// Validate app code based on configured length
+	appCodeMax := 1
+	for i := 0; i < errorCodeConf.AppLength; i++ {
+		appCodeMax *= 10
+	}
+	appCodeMax-- // Max value is 10^N - 1
+
+	if *appCode < 0 || *appCode > appCodeMax {
+		log.Fatalf("App code must be between 0 and %d (based on app_length=%d)", appCodeMax, errorCodeConf.AppLength)
+	}
+
 	// Validate business codes
 	if err := validateBusinessCodes(metadata); err != nil {
 		log.Fatalf("Error in %s: %v", *metadataFile, err)
-	}
-
-	// Load common errors
-	commonPath := filepath.Join(*scriptDir, *commonFile)
-	commonData, err := loadYAML(commonPath)
-	if err != nil {
-		log.Fatalf("Failed to load common errors from %s: %v", commonPath, err)
-	}
-
-	commonErrors, ok := commonData["error_code"].([]interface{})
-	if !ok {
-		log.Fatal("Invalid common errors format: error_code field not found or not an array")
 	}
 
 	// Get target app from metadata
@@ -444,7 +486,7 @@ func main() {
 
 			bizCode := biz["code"].(int)
 			fmt.Printf("\nProcessing business domain: %s\n", bizName)
-			result, err := generateBizCode(config, bizName, bizCode, commonErrors, *outputDir)
+			result, err := generateBizCode(config, bizName, bizCode, *outputDir)
 			if err != nil {
 				log.Fatalf("Failed to generate code for %s: %v", bizName, err)
 			}
@@ -459,7 +501,7 @@ func main() {
 		log.Fatalf("Error: %v", err)
 	}
 
-	result, err := generateBizCode(config, *bizName, bizCode, commonErrors, *outputDir)
+	result, err := generateBizCode(config, *bizName, bizCode, *outputDir)
 	if err != nil {
 		log.Fatalf("Failed to generate code: %v", err)
 	}
