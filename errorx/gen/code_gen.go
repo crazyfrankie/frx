@@ -265,7 +265,7 @@ func generateGoCode(config *Config, bizName string, bizCode int, bizErrors []int
 
 	// Prepare template data
 	data := CodeGenData{
-		PackageName:   filepath.Base(filepath.Dir(outputDir)),
+		PackageName:   filepath.Base(outputDir),
 		BizName:       bizName,
 		AppName:       config.AppName,
 		ImportPath:    config.ImportPath,
