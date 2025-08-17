@@ -1,0 +1,40 @@
+error_code:
+  - name: ErrInternalServer
+    code: 101
+    message: internal server error
+    no_affect_stability: true
+
+  - name: ErrInvalidParams
+    code: 102
+    message: invalid params
+    no_affect_stability: true
+
+  - name: ErrAuthentication
+    code: 103
+    message: authentication failed
+    no_affect_stability: true
+
+  - name: ErrNoPermission
+    code: 104
+    message: no access permission
+    no_affect_stability: true
+
+  - name: ErrTokenExpired
+    code: 105
+    message: token is expired
+    no_affect_stability: true
+
+  - name: ErrTokenInvalid
+    code: 106
+    message: token is invalid
+    no_affect_stability: true
+
+  - name: ErrTokenMalformed
+    code: 107
+    message: token is malformed
+    no_affect_stability: true
+
+  - name: ErrTokenNotValidYet
+    code: 108
+    message: token is not valid yet
+    no_affect_stability: true
