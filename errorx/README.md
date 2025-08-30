@@ -103,7 +103,7 @@ Creates a new error with the specified status code and options.
 #### `WrapByCode(err error, statusCode int32, options ...Option) error`
 Wraps an existing error with a status code and additional context.
 
-#### `Wrapf(err error, format string, args ...interface{}) error`
+#### `Wrapf(err error, format string, args ...any) error`
 Wraps an error with a formatted message.
 
 ### Options

@@ -8,36 +8,36 @@ import (
 
 // FormatLogger is a logs interface that output logs with a format.
 type FormatLogger interface {
-	Tracef(format string, v ...interface{})
-	Debugf(format string, v ...interface{})
-	Infof(format string, v ...interface{})
-	Noticef(format string, v ...interface{})
-	Warnf(format string, v ...interface{})
-	Errorf(format string, v ...interface{})
-	Fatalf(format string, v ...interface{})
+	Tracef(format string, v ...any)
+	Debugf(format string, v ...any)
+	Infof(format string, v ...any)
+	Noticef(format string, v ...any)
+	Warnf(format string, v ...any)
+	Errorf(format string, v ...any)
+	Fatalf(format string, v ...any)
 }
 
 // Logger is a logs interface that provides logging function with levels.
 type Logger interface {
-	Trace(v ...interface{})
-	Debug(v ...interface{})
-	Info(v ...interface{})
-	Notice(v ...interface{})
-	Warn(v ...interface{})
-	Error(v ...interface{})
-	Fatal(v ...interface{})
+	Trace(v ...any)
+	Debug(v ...any)
+	Info(v ...any)
+	Notice(v ...any)
+	Warn(v ...any)
+	Error(v ...any)
+	Fatal(v ...any)
 }
 
 // CtxLogger is a logs interface that accepts a context argument and output
 // logs with a format.
 type CtxLogger interface {
-	CtxTracef(ctx context.Context, format string, v ...interface{})
-	CtxDebugf(ctx context.Context, format string, v ...interface{})
-	CtxInfof(ctx context.Context, format string, v ...interface{})
-	CtxNoticef(ctx context.Context, format string, v ...interface{})
-	CtxWarnf(ctx context.Context, format string, v ...interface{})
-	CtxErrorf(ctx context.Context, format string, v ...interface{})
-	CtxFatalf(ctx context.Context, format string, v ...interface{})
+	CtxTracef(ctx context.Context, format string, v ...any)
+	CtxDebugf(ctx context.Context, format string, v ...any)
+	CtxInfof(ctx context.Context, format string, v ...any)
+	CtxNoticef(ctx context.Context, format string, v ...any)
+	CtxWarnf(ctx context.Context, format string, v ...any)
+	CtxErrorf(ctx context.Context, format string, v ...any)
+	CtxFatalf(ctx context.Context, format string, v ...any)
 }
 
 // Control provides methods to config a logs.

@@ -33,14 +33,14 @@ type ErrorCodeConfig struct {
 	SubLength   int `yaml:"sub_length"`
 }
 
-// loadYAML loads a YAML file and returns the data as map[string]interface{}
-func loadYAML(filePath string) (map[string]interface{}, error) {
+// loadYAML loads a YAML file and returns the data as map[string]any
+func loadYAML(filePath string) (map[string]any, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %s: %w", filePath, err)
 	}
 
-	var result map[string]interface{}
+	var result map[string]any
 	if err := yaml.Unmarshal(data, &result); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal YAML from %s: %w", filePath, err)
 	}
@@ -49,7 +49,7 @@ func loadYAML(filePath string) (map[string]interface{}, error) {
 }
 
 // loadErrorCodeConfig loads error code configuration from metadata
-func loadErrorCodeConfig(metadata map[string]interface{}) ErrorCodeConfig {
+func loadErrorCodeConfig(metadata map[string]any) ErrorCodeConfig {
 	// Default values
 	config := ErrorCodeConfig{
 		TotalLength: 9,
@@ -59,7 +59,7 @@ func loadErrorCodeConfig(metadata map[string]interface{}) ErrorCodeConfig {
 	}
 
 	// Try to load from metadata
-	if ec, ok := metadata["error_code"].(map[string]interface{}); ok {
+	if ec, ok := metadata["error_code"].(map[string]any); ok {
 		if totalLength, ok := ec["total_length"].(int); ok {
 			config.TotalLength = totalLength
 		}
@@ -78,27 +78,27 @@ func loadErrorCodeConfig(metadata map[string]interface{}) ErrorCodeConfig {
 }
 
 // validateBusinessCodes validates that all business codes are unique within each app
-func validateBusinessCodes(metadata map[string]interface{}) error {
-	apps, ok := metadata["app"].([]interface{})
+func validateBusinessCodes(metadata map[string]any) error {
+	apps, ok := metadata["app"].([]any)
 	if !ok {
 		return fmt.Errorf("invalid metadata format: app field not found or not an array")
 	}
 
 	for _, appInterface := range apps {
-		app, ok := appInterface.(map[string]interface{})
+		app, ok := appInterface.(map[string]any)
 		if !ok {
 			continue
 		}
 
 		appName, _ := app["name"].(string)
-		businessList, ok := app["business"].([]interface{})
+		businessList, ok := app["business"].([]any)
 		if !ok {
 			continue
 		}
 
 		seenCodes := make(map[int]string)
 		for _, bizInterface := range businessList {
-			biz, ok := bizInterface.(map[string]interface{})
+			biz, ok := bizInterface.(map[string]any)
 			if !ok {
 				continue
 			}
@@ -117,14 +117,14 @@ func validateBusinessCodes(metadata map[string]interface{}) error {
 }
 
 // getBizCode gets the business code for a given business name
-func getBizCode(metadata map[string]interface{}, appName, bizName string) (int, error) {
-	apps, ok := metadata["app"].([]interface{})
+func getBizCode(metadata map[string]any, appName, bizName string) (int, error) {
+	apps, ok := metadata["app"].([]any)
 	if !ok {
 		return 0, fmt.Errorf("invalid metadata format")
 	}
 
 	for _, appInterface := range apps {
-		app, ok := appInterface.(map[string]interface{})
+		app, ok := appInterface.(map[string]any)
 		if !ok {
 			continue
 		}
@@ -133,13 +133,13 @@ func getBizCode(metadata map[string]interface{}, appName, bizName string) (int, 
 			continue
 		}
 
-		businessList, ok := app["business"].([]interface{})
+		businessList, ok := app["business"].([]any)
 		if !ok {
 			continue
 		}
 
 		for _, bizInterface := range businessList {
-			biz, ok := bizInterface.(map[string]interface{})
+			biz, ok := bizInterface.(map[string]any)
 			if !ok {
 				continue
 			}
@@ -191,7 +191,7 @@ type ConstantGroup struct {
 }
 
 // getString safely gets a string value from map
-func getString(m map[string]interface{}, key string) string {
+func getString(m map[string]any, key string) string {
 	if val, ok := m[key].(string); ok {
 		return val
 	}
@@ -199,7 +199,7 @@ func getString(m map[string]interface{}, key string) string {
 }
 
 // getInt safely gets an int value from map
-func getInt(m map[string]interface{}, key string) int {
+func getInt(m map[string]any, key string) int {
 	if val, ok := m[key].(int); ok {
 		return val
 	}
@@ -207,7 +207,7 @@ func getInt(m map[string]interface{}, key string) int {
 }
 
 // getBool safely gets a bool value from map
-func getBool(m map[string]interface{}, key string) bool {
+func getBool(m map[string]any, key string) bool {
 	if val, ok := m[key].(bool); ok {
 		return val
 	}
@@ -215,7 +215,7 @@ func getBool(m map[string]interface{}, key string) bool {
 }
 
 // generateGoCode generates Go code for the given business domain
-func generateGoCode(config *Config, bizName string, bizCode int, bizErrors []interface{}, outputDir string) (string, error) {
+func generateGoCode(config *Config, bizName string, bizCode int, bizErrors []any, outputDir string) (string, error) {
 	if outputDir == "" {
 		return "", fmt.Errorf("output_dir cannot be empty")
 	}
@@ -226,7 +226,7 @@ func generateGoCode(config *Config, bizName string, bizCode int, bizErrors []int
 	var registrations []string
 
 	for _, errorInterface := range bizErrors {
-		errorMap, ok := errorInterface.(map[string]interface{})
+		errorMap, ok := errorInterface.(map[string]any)
 		if !ok {
 			continue
 		}
@@ -307,14 +307,14 @@ func generateGoCode(config *Config, bizName string, bizCode int, bizErrors []int
 // generateBizCode generates code for a specific business domain
 func generateBizCode(config *Config, bizName string, bizCode int, outputDir string) (string, error) {
 	// Get business specific errors if they exist
-	var bizErrors []interface{}
+	var bizErrors []any
 	bizErrorFile := filepath.Join(config.ScriptDir, bizName+".yaml")
 	if _, err := os.Stat(bizErrorFile); err == nil {
 		bizData, err := loadYAML(bizErrorFile)
 		if err != nil {
 			return "", fmt.Errorf("failed to load business error file: %w", err)
 		}
-		if errorCodes, ok := bizData["error_code"].([]interface{}); ok {
+		if errorCodes, ok := bizData["error_code"].([]any); ok {
 			bizErrors = errorCodes
 		}
 	}
@@ -445,14 +445,14 @@ func main() {
 	}
 
 	// Get target app from metadata
-	apps, ok := metadata["app"].([]interface{})
+	apps, ok := metadata["app"].([]any)
 	if !ok {
 		log.Fatal("Invalid metadata format: app field not found")
 	}
 
-	var targetApp map[string]interface{}
+	var targetApp map[string]any
 	for _, appInterface := range apps {
-		app, ok := appInterface.(map[string]interface{})
+		app, ok := appInterface.(map[string]any)
 		if !ok {
 			continue
 		}
@@ -468,13 +468,13 @@ func main() {
 
 	// Handle wildcard case
 	if *bizName == "*" {
-		businessList, ok := targetApp["business"].([]interface{})
+		businessList, ok := targetApp["business"].([]any)
 		if !ok {
 			log.Fatal("Invalid app format: business field not found")
 		}
 
 		for _, bizInterface := range businessList {
-			biz, ok := bizInterface.(map[string]interface{})
+			biz, ok := bizInterface.(map[string]any)
 			if !ok {
 				continue
 			}
