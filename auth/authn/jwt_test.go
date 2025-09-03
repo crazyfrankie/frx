@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/golang-jwt/jwt/v5"
 	"io"
 	"log"
 	"net"
@@ -43,6 +44,7 @@ func TestGINJWT_MultipleLocations(t *testing.T) {
 			}
 			return MapClaims{}
 		},
+		ParseOptions: []jwt.ParserOption{jwt.WithJSONNumber()},
 	}
 
 	handler, err := New(cfg)
@@ -79,7 +81,7 @@ func TestGINJWT_MultipleLocations(t *testing.T) {
 	})
 
 	go func() {
-		if err := server.Run("localhost:8082"); err != nil {
+		if err := server.Run("localhost:8080"); err != nil {
 			t.Logf("Server error: %v", err)
 		}
 	}()
@@ -103,7 +105,7 @@ func TestGINJWT_MultipleLocations(t *testing.T) {
 			name:        "HeaderAuth",
 			tokenLookup: "header:Authorization",
 			setupReq:    func(req *http.Request) { req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token)) },
-			url:         "http://localhost:8082/hello",
+			url:         "http://localhost:8080/hello",
 			method:      http.MethodGet,
 			description: "Test JWT passed through Authorization header",
 		},
@@ -111,7 +113,7 @@ func TestGINJWT_MultipleLocations(t *testing.T) {
 			name:        "CookieAuth",
 			tokenLookup: "cookie:refresh_token",
 			setupReq:    func(req *http.Request) { req.AddCookie(&http.Cookie{Name: "refresh_token", Value: token}) },
-			url:         "http://localhost:8082/hello",
+			url:         "http://localhost:8080/hello",
 			method:      http.MethodGet,
 			description: "Testing JWT Delivery via Cookie",
 		},
@@ -119,7 +121,7 @@ func TestGINJWT_MultipleLocations(t *testing.T) {
 			name:        "QueryAuth",
 			tokenLookup: "query:token",
 			setupReq:    func(req *http.Request) {},
-			url:         fmt.Sprintf("http://localhost:8082/hello?token=%s", url.QueryEscape(token)),
+			url:         fmt.Sprintf("http://localhost:8080/hello?token=%s", url.QueryEscape(token)),
 			method:      http.MethodGet,
 			description: "Testing JWT Passing via Query Parameters",
 		},
@@ -127,7 +129,7 @@ func TestGINJWT_MultipleLocations(t *testing.T) {
 			name:        "ParamAuth",
 			tokenLookup: "param:token",
 			setupReq:    func(req *http.Request) {},
-			url:         fmt.Sprintf("http://localhost:8082/hello/%s", url.PathEscape(token)),
+			url:         fmt.Sprintf("http://localhost:8080/hello/%s", url.PathEscape(token)),
 			method:      http.MethodGet,
 			description: "Testing JWT Passing via URL Parameters",
 		},
@@ -139,7 +141,7 @@ func TestGINJWT_MultipleLocations(t *testing.T) {
 				req.Body = io.NopCloser(body)
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			},
-			url:         "http://localhost:8082/hello",
+			url:         "http://localhost:8080/hello",
 			method:      http.MethodPost,
 			description: "Testing JWT Passing through Form Forms",
 		},
