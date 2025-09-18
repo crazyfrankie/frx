@@ -3,9 +3,12 @@ module github.com/crazyfrankie/frx
 go 1.24.4
 
 require (
+	dario.cat/mergo v1.0.2
 	github.com/bytedance/sonic v1.14.0
 	github.com/elastic/pkcs8 v1.0.0
+	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gin-gonic/gin v1.10.1
+	github.com/go-playground/form/v4 v4.2.1
 	github.com/go-playground/validator/v10 v10.20.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/onsi/gomega v1.38.0
